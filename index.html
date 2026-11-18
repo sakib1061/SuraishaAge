@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baby age</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e6f1f0;--ink:#17323a;--muted:#5a777d;--accent:#e9a62f;--frame:#cfe2e1}
+@media(prefers-color-scheme:dark){:root{--bg:#0e2126;--ink:#e8f3f2;--muted:#8fb0b5;--frame:#17323a}}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Nunito",ui-rounded,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  padding:max(20px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom))}
+#name{font-size:1.25rem;font-weight:800;color:var(--muted);text-align:center}
+#name:empty{display:none}
+#photo{width:min(100%,420px);aspect-ratio:4/5;max-height:56vh;border-radius:28px;background:var(--frame);
+  overflow:hidden;display:grid;place-items:center;cursor:pointer;border:0;padding:0}
+#photo img{width:100%;height:100%;object-fit:cover;display:block}
+#photo span{padding:24px;text-align:center;color:var(--muted);font-weight:600;line-height:1.5}
+#age{font-size:clamp(1.4rem,6vw,2rem);font-weight:800;text-align:center;line-height:1.25}
+#clock{display:flex;gap:10px;align-items:flex-start}
+.u{display:flex;flex-direction:column;align-items:center;min-width:76px}
+.u b{font-size:clamp(2.6rem,13vw,4rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.u small{color:var(--muted);font-weight:600;margin-top:4px}
+.sep{font-size:clamp(2.6rem,13vw,4rem);font-weight:800;line-height:1;color:var(--accent)}
+#total{color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div id="name"></div>
+<button id="photo" aria-label="Show another photo"><span>Add your Google Drive folder in the settings at the top of the script.</span></button>
+<div id="age"></div>
+<div id="clock">
+  <div class="u"><b id="h">00</b><small>hours</small></div><div class="sep">:</div>
+  <div class="u"><b id="m">00</b><small>minutes</small></div><div class="sep">:</div>
+  <div class="u"><b id="s">00</b><small>seconds</small></div>
+</div>
+<div id="total"></div>
+
+<script>
+/* ---------- SETTINGS: edit these ---------- */
+const BABY_NAME = "Suraisha Mahdiyat Nuzha";
+const BIRTH = "2026-04-29T22:10:00+06:00";           // 29 Apr 2026, 10:10 PM (+06:00 = Bangladesh)
+const DRIVE_FOLDER_ID = "1LQswi65LVosN1fNQRjTN0gsRX_3y0448";   // your photo folder
+const LIST_URL = "";                                 // paste your Google Apps Script web app URL here (auto-updates, no API key)
+const API_KEY = "";                                  // optional: Google Drive API key, so new photos in the folder appear automatically
+const FILE_IDS = [                                  // used when there is no API key
+  "1rRueHQTYOazGWCwhI39ujLI2Y-yKncfe",
+  "1XlzcGROm5zfZiEAH_YBcIQ0fAPUeNxiW",
+  "1XkxXmitb4YBd96uhkn7vJWjrjUeDXML8",
+  "1XjTGfvr-nAfHikMoSYPfmlNXKng7lT5L",
+  "1XmtwLsq6GqxwsuHgZqK7R8jyUJoXYCpv",
+  "1-ZnUfK_Io8Z4W3iJIQYK3CiBQY9yx-jW",
+  "1-Ur94l5X-oW0dWku2ycGcw7u_BXvkBUh",
+  "1-TAZsT1leG8PqQNhcLhPdIe8-DlM-QBb",
+  "1-KYh22PCHBkdKD1Ewe4C7VXMXb9Ejx0b",
+  "1-IOQcSoXWdVqvzZpysG31QViXkYXCEmx",
+  "1LWlaaZ76VLgUdB3OXQw7O9gGHBf96iPO",
+  "1LXzx5Tm5_7m-CyuV15-GP8WD_dVflYad",
+  "1LVWN1gaeil8L3hS-WV4vuy9Zjoo9oTc4",
+  "1qGv15uEW5fGVx7BT1MPjiOCpujVyTOpc"
+];
+const CHANGE_EVERY_SEC = 0;                          // 0 = new photo on load/tap only; e.g. 60 = rotate every minute
+/* ------------------------------------------ */
+
+const $ = id => document.getElementById(id);
+const birth = new Date(BIRTH);
+$("name").textContent = BABY_NAME;
+
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+const pad = n => String(n).padStart(2, "0");
+
+function addMonths(d, n) {
+  const r = new Date(d.getFullYear(), d.getMonth() + n, 1, d.getHours(), d.getMinutes(), d.getSeconds());
+  const last = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
+  r.setDate(Math.min(d.getDate(), last));
+  return r;
+}
+
+function tick() {
+  const now = new Date() < birth ? birth : new Date();
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
+  if (addMonths(birth, months) > now) months--;
+  let rest = Math.floor((now - addMonths(birth, months)) / 1000);
+  const days = Math.floor(rest / 86400); rest %= 86400;
+  const h = Math.floor(rest / 3600); rest %= 3600;
+  const m = Math.floor(rest / 60), s = rest % 60;
+  const y = Math.floor(months / 12), mo = months % 12;
+
+  const parts = [];
+  if (y) parts.push(plural(y, "year"));
+  if (y || mo) parts.push(plural(mo, "month"));
+  parts.push(plural(days, "day"));
+  $("age").textContent = parts.join(", ");
+  $("h").textContent = pad(h); $("m").textContent = pad(m); $("s").textContent = pad(s);
+  $("total").textContent = plural(Math.floor((now - birth) / 86400000), "day") + " old";
+}
+tick(); setInterval(tick, 250);
+
+/* ---------- Photos ---------- */
+let ids = [], last = null;
+
+async function loadIds() {
+  if (LIST_URL) {
+    const r = await fetch(LIST_URL);
+    if (!r.ok) throw new Error("List " + r.status);
+    return await r.json();
+  }
+  if (!DRIVE_FOLDER_ID || !API_KEY) return FILE_IDS;
+  const q = encodeURIComponent(`'${DRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
+  const out = []; let token = "";
+  do {
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=1000&fields=nextPageToken,files(id)&key=${API_KEY}${token ? "&pageToken=" + token : ""}`);
+    if (!r.ok) throw new Error("Drive API " + r.status);
+    const j = await r.json();
+    out.push(...j.files.map(f => f.id)); token = j.nextPageToken || "";
+  } while (token);
+  return out;
+}
+
+function showRandom() {
+  if (!ids.length) return;
+  let id;
+  do { id = ids[Math.floor(Math.random() * ids.length)]; } while (ids.length > 1 && id === last);
+  last = id;
+  const img = new Image();
+  img.alt = "Baby photo";
+  img.onload = () => { $("photo").replaceChildren(img); };
+  let tried = false;
+  img.onerror = () => {
+    if (!tried) { tried = true; img.src = `https://lh3.googleusercontent.com/d/${id}=w1600`; }
+    else if (ids.length > 1) showRandom();
+  };
+  img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+}
+
+$("photo").addEventListener("click", showRandom);
+
+loadIds().catch(e => { if (FILE_IDS.length) return FILE_IDS; throw e; }).then(list => {
+  ids = list && list.length ? list : FILE_IDS;
+  if (!ids.length) return;
+  showRandom();
+  if (CHANGE_EVERY_SEC > 0) setInterval(showRandom, CHANGE_EVERY_SEC * 1000);
+}).catch(() => {
+  $("photo").innerHTML = "<span>Couldn't read the Drive folder. Check that it is shared as “Anyone with the link” and the API key is correct.</span>";
+});
+</script>
+</body>
+</html>
