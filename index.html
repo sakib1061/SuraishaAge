@@ -76,24 +76,9 @@ body{background:#0b0b0b;color:#fff;font-family:"Montserrat",system-ui,sans-serif
 const BABY_NAME = "Suraisha Mahdiyat Nuzha";
 const BIRTH = "2026-04-29T22:10:00+06:00";           // 29 Apr 2026, 10:10 PM (+06:00 = Bangladesh)
 const DRIVE_FOLDER_ID = "1LQswi65LVosN1fNQRjTN0gsRX_3y0448";   // your photo folder
-const LIST_URL = "";                                 // paste your Google Apps Script web app URL here (auto-updates, no API key)
+const LIST_URL = "AKfycbyybNRznvELwcN7YPF4kW9iRaYM4wv6zlxpPiVnGnXLKpM5WyVbbcX3P3JFpSqbzoZMhw";                                 // paste your Google Apps Script web app URL here (auto-updates, no API key)
 const API_KEY = "";                                  // optional: Google Drive API key, so new photos in the folder appear automatically
-const FILE_IDS = [                                  // used when there is no API key
-  "1rRueHQTYOazGWCwhI39ujLI2Y-yKncfe",
-  "1XlzcGROm5zfZiEAH_YBcIQ0fAPUeNxiW",
-  "1XkxXmitb4YBd96uhkn7vJWjrjUeDXML8",
-  "1XjTGfvr-nAfHikMoSYPfmlNXKng7lT5L",
-  "1XmtwLsq6GqxwsuHgZqK7R8jyUJoXYCpv",
-  "1-ZnUfK_Io8Z4W3iJIQYK3CiBQY9yx-jW",
-  "1-Ur94l5X-oW0dWku2ycGcw7u_BXvkBUh",
-  "1-TAZsT1leG8PqQNhcLhPdIe8-DlM-QBb",
-  "1-KYh22PCHBkdKD1Ewe4C7VXMXb9Ejx0b",
-  "1-IOQcSoXWdVqvzZpysG31QViXkYXCEmx",
-  "1LWlaaZ76VLgUdB3OXQw7O9gGHBf96iPO",
-  "1LXzx5Tm5_7m-CyuV15-GP8WD_dVflYad",
-  "1LVWN1gaeil8L3hS-WV4vuy9Zjoo9oTc4",
-  "1qGv15uEW5fGVx7BT1MPjiOCpujVyTOpc"
-];
+const FILE_IDS = ["10U5b5NIfe4HJZ6Unr4SuseW0ZX7oNj2-"];   // only used when LIST_URL and API_KEY are both empty
 const SECONDS_PER_PHOTO = 5;                         // each photo stays this long, then the next one appears
 /* ------------------------------------------ */
 
@@ -170,17 +155,22 @@ tick(); setInterval(tick, 250);
 /* ---------- Photos ---------- */
 let ids = [], last = null;
 
+const LIVE = !!(LIST_URL || (DRIVE_FOLDER_ID && API_KEY));   // live = read the folder itself, never the saved list
+const bust = u => u + (u.includes("?") ? "&" : "?") + "t=" + Date.now();   // stops the browser reusing an old answer
+
 async function loadIds() {
   if (LIST_URL) {
-    const r = await fetch(LIST_URL);
+    const r = await fetch(bust(LIST_URL), { cache: "no-store" });
     if (!r.ok) throw new Error("List " + r.status);
-    return await r.json();
+    const list = await r.json();
+    if (!Array.isArray(list)) throw new Error("Bad response");
+    return list;
   }
-  if (!DRIVE_FOLDER_ID || !API_KEY) return FILE_IDS;
+  if (!LIVE) return FILE_IDS;
   const q = encodeURIComponent(`'${DRIVE_FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
   const out = []; let token = "";
   do {
-    const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=1000&fields=nextPageToken,files(id)&key=${API_KEY}${token ? "&pageToken=" + token : ""}`);
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=1000&fields=nextPageToken,files(id)&key=${API_KEY}${token ? "&pageToken=" + token : ""}`, { cache: "no-store" });
     if (!r.ok) throw new Error("Drive API " + r.status);
     const j = await r.json();
     out.push(...j.files.map(f => f.id)); token = j.nextPageToken || "";
@@ -241,13 +231,31 @@ async function showNext() {
 
 $("photo").addEventListener("click", showNext);   // tap = skip to the next photo
 
-loadIds().catch(e => { if (FILE_IDS.length) return FILE_IDS; throw e; }).then(list => {
-  ids = list && list.length ? list : FILE_IDS;
-  if (LIST_URL || API_KEY) setInterval(() => loadIds().then(l => { if (l && l.length) ids = l; }).catch(() => {}), 600000);
-  if (!ids.length) return;
+const message = t => { $("photo").innerHTML = "<span>" + t + "</span>"; };
+
+// new uploads go to the front of the line; deleted photos drop out
+function applyList(list) {
+  const fresh = list.filter(id => !ids.includes(id));
+  ids = list;
+  queue = fresh.concat(queue.filter(id => list.includes(id)));
+}
+
+async function refresh() {
+  try {
+    const wasEmpty = !ids.length;
+    applyList(await loadIds());
+    if (!ids.length) { clearTimeout(timer); message("No photos in the folder yet."); }
+    else if (wasEmpty) showNext();
+  } catch (e) { /* keep showing what we have; try again next time */ }
+}
+
+loadIds().then(list => {
+  applyList(list);
+  if (LIVE) setInterval(refresh, 120000);          // look at the folder again every 2 minutes
+  if (!ids.length) { message("No photos in the folder yet."); return; }
   showNext();
 }).catch(() => {
-  $("photo").innerHTML = "<span>Couldn't read the Drive folder. Check that it is shared as “Anyone with the link” and the API key is correct.</span>";
+  message("Couldn't read the Drive folder. Check the Apps Script link (LIST_URL) or API key, and that the folder is shared as “Anyone with the link”.");
 });
 </script>
 </body>
