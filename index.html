@@ -3,42 +3,73 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
 <title>Baby age</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;800&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#e6f1f0;--ink:#17323a;--muted:#5a777d;--accent:#e9a62f;--frame:#cfe2e1}
-@media(prefers-color-scheme:dark){:root{--bg:#0e2126;--ink:#e8f3f2;--muted:#8fb0b5;--frame:#17323a}}
+:root{--amber:#e0a21b}
 *{box-sizing:border-box;margin:0}
 html,body{min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:"Nunito",ui-rounded,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;gap:20px;
-  padding:max(20px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom))}
-#name{font-size:1.25rem;font-weight:800;color:var(--muted);text-align:center}
-#name:empty{display:none}
-#photo{width:min(100%,420px);aspect-ratio:4/5;max-height:56vh;border-radius:28px;background:var(--frame);
-  overflow:hidden;display:grid;place-items:center;cursor:pointer;border:0;padding:0}
+body{background:#0b0b0b;color:#fff;font-family:"Montserrat",system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+  padding:max(18px,env(safe-area-inset-top)) 16px max(22px,env(safe-area-inset-bottom))}
+
+/* photo */
+#photo{width:min(100%,420px);aspect-ratio:4/5;max-height:42vh;border-radius:22px;background:#1c1c1c;
+  overflow:hidden;display:grid;place-items:center;cursor:pointer;border:0;padding:0;flex:none}
 #photo img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .7s ease}
 #photo img.in{opacity:1}
-#photo span{padding:24px;text-align:center;color:var(--muted);font-weight:600;line-height:1.5}
-#age{font-size:clamp(1.4rem,6vw,2rem);font-weight:800;text-align:center;line-height:1.25}
-#clock{display:flex;gap:10px;align-items:flex-start}
-.u{display:flex;flex-direction:column;align-items:center;min-width:76px}
-.u b{font-size:clamp(2.6rem,13vw,4rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
-.u small{color:var(--muted);font-weight:600;margin-top:4px}
-.sep{font-size:clamp(2.6rem,13vw,4rem);font-weight:800;line-height:1;color:var(--accent)}
-#total{color:var(--muted);font-weight:600}
+#photo span{padding:24px;text-align:center;color:#9a9a9a;font-weight:500;line-height:1.5}
+
+/* clock panel */
+.panel{width:min(100%,560px);border-radius:18px;padding:22px 14px 24px;text-align:center;
+  background:radial-gradient(ellipse at 50% 55%,#2a2a2a 0%,#1c1c1c 70%);border:1px solid #333}
+#name{font-weight:800;font-size:clamp(1.05rem,5.2vw,1.7rem);letter-spacing:.05em;text-transform:uppercase;margin-bottom:22px}
+#name:empty{display:none}
+.row{display:flex;justify-content:center;gap:clamp(8px,2.4vw,16px)}
+.col{display:flex;flex-direction:column;align-items:center;gap:12px}
+.lab{color:var(--amber);font-weight:500;font-size:clamp(.68rem,3.3vw,1rem);text-transform:uppercase;letter-spacing:.03em}
+#age{color:var(--amber);font-weight:500;font-size:clamp(.8rem,3.6vw,1.05rem);text-transform:uppercase;margin-top:26px}
+
+/* flip tile */
+.flip{position:relative;display:inline-block;perspective:700px;font-size:clamp(2.2rem,11.5vw,4.2rem);
+  font-family:"Oswald","Bebas Neue",Impact,"Arial Narrow",sans-serif;font-weight:700;
+  border-radius:.2em;box-shadow:0 6px 12px rgba(0,0,0,.55)}
+.flip::after{content:"";position:absolute;left:0;right:0;top:50%;height:max(2px,.03em);
+  background:#0a0a0a;transform:translateY(-50%);z-index:5}
+.sz{display:block;visibility:hidden;font:inherit;font-style:normal;padding:0 .22em;line-height:1.55;text-align:center}
+.half{position:absolute;left:0;right:0;height:50%;overflow:hidden}
+.half.top{top:0;border-radius:.2em .2em 0 0;background:linear-gradient(#484848,#2e2e2e)}
+.half.bot{bottom:0;border-radius:0 0 .2em .2em;background:linear-gradient(#262626,#1a1a1a)}
+.half span{position:absolute;left:0;right:0;height:200%;display:flex;align-items:center;justify-content:center}
+.half.top span{top:0}
+.half.bot span{bottom:0}
+.half em{font-style:normal;line-height:1;background:linear-gradient(#fbfbfb,#b3b3b3);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.leaf-top,.leaf-bottom{visibility:hidden;backface-visibility:hidden;z-index:3}
+.leaf-top{transform-origin:50% 100%}
+.leaf-bottom{transform-origin:50% 0}
+.go .leaf-top,.go .leaf-bottom{visibility:visible}
+.go .leaf-top{animation:ft .3s ease-in forwards}
+.go .leaf-bottom{animation:fb .3s ease-out .3s both}
+@keyframes ft{from{transform:rotateX(0)}to{transform:rotateX(-90deg)}}
+@keyframes fb{from{transform:rotateX(90deg)}to{transform:rotateX(0)}}
+@media(prefers-reduced-motion:reduce){.go .leaf-top,.go .leaf-bottom{animation-duration:.01s;animation-delay:0s}}
 </style>
 </head>
 <body>
-<div id="name"></div>
 <button id="photo" aria-label="Next photo"><span>Add your Google Drive folder in the settings at the top of the script.</span></button>
-<div id="age"></div>
-<div id="clock">
-  <div class="u"><b id="h">00</b><small>hours</small></div><div class="sep">:</div>
-  <div class="u"><b id="m">00</b><small>minutes</small></div><div class="sep">:</div>
-  <div class="u"><b id="s">00</b><small>seconds</small></div>
+
+<div class="panel">
+  <div id="name"></div>
+  <div class="row">
+    <div class="col"><div class="flip" id="fd"></div><div class="lab">Days</div></div>
+    <div class="col"><div class="flip" id="fh"></div><div class="lab">Hours</div></div>
+    <div class="col"><div class="flip" id="fm"></div><div class="lab">Minutes</div></div>
+    <div class="col"><div class="flip" id="fs"></div><div class="lab">Seconds</div></div>
+  </div>
+  <div id="age"></div>
 </div>
-<div id="total"></div>
 
 <script>
 /* ---------- SETTINGS: edit these ---------- */
@@ -73,6 +104,42 @@ $("name").textContent = BABY_NAME;
 const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
 const pad = n => String(n).padStart(2, "0");
 
+/* ---------- Flip clock ---------- */
+function half(cls) {
+  const d = document.createElement("div");
+  d.className = "half " + cls;
+  d.innerHTML = "<span><em></em></span>";
+  return d;
+}
+const setText = (el, v) => { el.querySelector("em").textContent = v; };
+
+class Flip {
+  constructor(root) {
+    this.root = root; this.val = null; this.timer = null;
+    this.sz = document.createElement("b"); this.sz.className = "sz";
+    this.top = half("top"); this.bot = half("bot");
+    this.lt = half("top leaf-top"); this.lb = half("bot leaf-bottom");
+    root.append(this.sz, this.top, this.bot, this.lt, this.lb);
+  }
+  set(v) {
+    if (v === this.val) return;
+    this.sz.textContent = v;
+    if (this.val === null) {                       // first paint: no animation
+      [this.top, this.bot, this.lt, this.lb].forEach(e => setText(e, v));
+      this.val = v; return;
+    }
+    clearTimeout(this.timer);
+    setText(this.bot, this.val);                   // bottom still shows the old value
+    setText(this.lt, this.val);                    // top leaf (old) folds down...
+    setText(this.top, v);                          // ...revealing the new top
+    setText(this.lb, v);                           // bottom leaf (new) folds in
+    this.root.classList.remove("go"); void this.root.offsetWidth; this.root.classList.add("go");
+    this.timer = setTimeout(() => { setText(this.bot, v); this.root.classList.remove("go"); }, 620);
+    this.val = v;
+  }
+}
+const fd = new Flip($("fd")), fh = new Flip($("fh")), fm = new Flip($("fm")), fs = new Flip($("fs"));
+
 function addMonths(d, n) {
   const r = new Date(d.getFullYear(), d.getMonth() + n, 1, d.getHours(), d.getMinutes(), d.getSeconds());
   const last = new Date(r.getFullYear(), r.getMonth() + 1, 0).getDate();
@@ -82,21 +149,21 @@ function addMonths(d, n) {
 
 function tick() {
   const now = new Date() < birth ? birth : new Date();
+  let t = Math.floor((now - birth) / 1000);
+  const d = Math.floor(t / 86400); t %= 86400;
+  const h = Math.floor(t / 3600); t %= 3600;
+  const m = Math.floor(t / 60), s = t % 60;
+  fd.set(pad(d)); fh.set(pad(h)); fm.set(pad(m)); fs.set(pad(s));
+
   let months = (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
   if (addMonths(birth, months) > now) months--;
-  let rest = Math.floor((now - addMonths(birth, months)) / 1000);
-  const days = Math.floor(rest / 86400); rest %= 86400;
-  const h = Math.floor(rest / 3600); rest %= 3600;
-  const m = Math.floor(rest / 60), s = rest % 60;
+  const days = Math.floor((now - addMonths(birth, months)) / 86400000);
   const y = Math.floor(months / 12), mo = months % 12;
-
   const parts = [];
   if (y) parts.push(plural(y, "year"));
   if (y || mo) parts.push(plural(mo, "month"));
   parts.push(plural(days, "day"));
-  $("age").textContent = parts.join(", ");
-  $("h").textContent = pad(h); $("m").textContent = pad(m); $("s").textContent = pad(s);
-  $("total").textContent = plural(Math.floor((now - birth) / 86400000), "day") + " old";
+  $("age").textContent = parts.join(", ") + " old";
 }
 tick(); setInterval(tick, 250);
 
